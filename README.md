@@ -13,6 +13,10 @@ This extension seamlessly integrates with the **Context Window** extension. If i
 **Note on Large Projects:**
 If you open a large workspace, the extension may show a "Waiting for symbol provider..." status initially while the language server (e.g., C/C++ IntelliSense) warms up. Once the provider is ready, the extension will automatically start **background indexing**, indicated by a progress bar and spinner animation in the view. You can continue using the extension (Standard Mode) while indexing completes.
 
+**Cross-Platform Support:**
+This extension is designed to be compatible with **Windows**, **macOS**, and **Linux**, including **WSL**, **SSH**, and **Dev Containers**. It automatically handles path differences (e.g., `\` vs `/`) to ensure seamless navigation and search.
+> **Note**: We primarily test on **Windows** and **WSL**. While the architecture supports generic remote environments (SSH, Containers), these have not been extensively verified. If you encounter any issues, please [report them on GitHub](https://github.com/Lee20171010/symbol-relation-window/issues).
+
 ## Keybindings
 
 | Command | Keybinding | Condition |

@@ -12,6 +12,11 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ### Fixed
 - **Permissions**: Fixed `ripgrep` permission issues on macOS/Linux by adding a runtime check to ensure the binary is executable (`chmod 755`).
 - **Indexing**: Improved file discovery for the Symbol Database. Switched from spawning `ripgrep --files` to using the native `vscode.workspace.findFiles` API. This fixes issues with path resolution in WSL/Remote environments and ensures `.gitignore` is respected consistently.
+- **Cross-Platform Paths**: Fixed "File not found" errors in WSL/Remote environments by implementing a robust path handling strategy.
+    - Correctly handles `ripgrep` output with mixed separators (Windows `\` vs Linux `/`).
+    - Ensures Webview communication uses standard URIs while internal tools use file system paths.
+    - Added support for `vscode-context-window` navigation in Remote environments (WSL, SSH, Dev Containers, Codespaces).
+    - *Note: While we've implemented support for generic remote environments, we have primarily tested on Windows and WSL. If you encounter issues on other remote platforms (SSH, Containers), please file an issue.*
 
 ## [1.0.0] - 2025-12-21
 

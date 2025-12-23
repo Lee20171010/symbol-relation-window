@@ -128,8 +128,12 @@ export class SymbolModel {
             const files = output.split('\n').filter(f => f.trim().length > 0);
 
             for (const file of files) {
-                const uri = vscode.Uri.file(vscode.Uri.joinPath(vscode.Uri.file(rootPath), file).fsPath);
-                matchedUris.add(uri.toString());
+                // Use Uri.joinPath to handle cross-platform path joining safely
+                // Split by both / and \ to handle potential mixed separators from rg output
+                const segments = file.split(/[\\/]/);
+                const rootUri = vscode.Uri.file(rootPath);
+                const fullUri = vscode.Uri.joinPath(rootUri, ...segments);
+                matchedUris.add(fullUri.toString());
             }
 
         } catch (e) {

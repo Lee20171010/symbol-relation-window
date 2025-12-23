@@ -67,8 +67,15 @@ export async function performDeepSearch(options: DeepSearchOptions): Promise<vsc
                 const lineNum = parseInt(parts[1]) - 1; // 0-based
                 const colNum = parseInt(parts[2]) - 1;
                 
-                const absPath = path.isAbsolute(file) ? file : path.join(cwd, file);
-                const uri = vscode.Uri.file(absPath);
+                // Use Uri.joinPath for safe cross-platform path joining
+                let uri: vscode.Uri;
+                if (path.isAbsolute(file)) {
+                    uri = vscode.Uri.file(file);
+                } else {
+                    const rootUri = vscode.Uri.file(cwd);
+                    const segments = file.split(/[\\/]/);
+                    uri = vscode.Uri.joinPath(rootUri, ...segments);
+                }
                 
                 // We don't know the length of the match easily without re-checking query length or content
                 // But for fixed string search, it's query.length

@@ -24,6 +24,12 @@ Thank you for your interest in contributing to Symbol Window! We welcome bug rep
     - Open the project in VS Code.
     - Press `F5` to start debugging. This will open a new "Extension Development Host" window with the extension loaded.
 
+### Cross-Platform Development (WSL/Windows)
+If you are developing on Windows or WSL, please adhere to the following path handling guidelines:
+-   **Internal Logic**: Use `fsPath` for tools like `ripgrep` or `sqlite`.
+-   **External API**: Use `vscode.Uri` for Webviews and VS Code APIs.
+-   **Path Joining**: Use `vscode.Uri.joinPath` instead of `path.join` when dealing with URIs to avoid separator issues (`\` vs `/`).
+
 ## Project Structure
 
 The codebase follows a modular MVC-like pattern. Here is the breakdown of the folder structure and the responsibilities of key components:

@@ -60,6 +60,20 @@ src/
     └── vscode-api.ts                  // API Wrapper: Typed wrapper for VS Code Webview API.
 ```
 
+### 3.2 Path Handling Strategy (Cross-Platform)
+To ensure consistent behavior across Windows, WSL, and Remote environments, the extension adopts an **"Internal/External Separation"** strategy for path handling:
+
+1.  **Internal Logic (Model/Tools)**: Always use **File System Paths (`fsPath`)**.
+    -   Tools like `ripgrep` and `sqlite` (Node.js `fs`) require OS-native paths.
+    -   On Windows: `C:\Users\Project\...`
+    -   On WSL/Linux: `/mnt/c/Users/Project/...`
+2.  **External Communication (Webview/VS Code API)**: Always use **URI Strings** or **Objects**.
+    -   Webviews and VS Code APIs expect URIs (`file:///...` or `vscode-remote://...`).
+    -   This abstracts away the underlying OS differences.
+3.  **Path Joining**: Always use `vscode.Uri.joinPath`.
+    -   Never use string concatenation (`root + '/' + file`) or `path.join` for cross-platform logic involving URIs.
+    -   `ripgrep` output (relative paths) is split by `/[\\/]/` to handle mixed separators (e.g., `src\utils.ts` on Windows) before joining.
+
 **Key Components:**
 *   **Features (`src/features/*`)**: Each folder (symbol, relation, reference) is self-contained, typically consisting of:
     *   `Controller`: Orchestrates events and updates.

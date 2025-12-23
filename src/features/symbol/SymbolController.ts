@@ -628,8 +628,21 @@ export class SymbolController {
         }
     }
 
-    public setScope(path: string) {
-        this.currentScopePath = path;
+    public setScope(scope: string) {
+        // Sanitize input: Ensure we have a valid fsPath for internal use
+        try {
+            // If it looks like a URI, parse it
+            if (scope.startsWith('file://') || scope.startsWith('vscode-remote://')) {
+                this.currentScopePath = vscode.Uri.parse(scope).fsPath;
+            } else {
+                // Otherwise treat as path (but normalize it via Uri.file to be safe)
+                this.currentScopePath = vscode.Uri.file(scope).fsPath;
+            }
+        } catch (e) {
+            console.warn('[Source Window] Invalid scope path:', scope);
+            this.currentScopePath = scope; // Fallback
+        }
+
         this.context.workspaceState.update('symbolWindow.scopePath', this.currentScopePath);
         
         // Switch to project mode if not already
@@ -637,7 +650,9 @@ export class SymbolController {
             this.toggleMode();
         }
         
-        this.provider?.postMessage({ command: 'setScope', scopePath: this.currentScopePath });
+        // Send back to Webview as URI string (External Communication)
+        const scopeUri = vscode.Uri.file(this.currentScopePath).toString();
+        this.provider?.postMessage({ command: 'setScope', scopePath: scopeUri });
         
         // Trigger search if query exists
         if (this.currentQuery) {
@@ -665,6 +680,7 @@ export class SymbolController {
         });
 
         if (uris && uris.length > 0) {
+            // Internal: Use fsPath
             this.setScope(uris[0].fsPath);
         }
     }
