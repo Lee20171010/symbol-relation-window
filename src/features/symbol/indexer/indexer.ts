@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { SymbolDatabase, SymbolRecord } from '../../../shared/db/database';
 import * as cp from 'child_process';
-import { rgPath } from '@vscode/ripgrep';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -67,67 +66,37 @@ export class SymbolIndexer {
     }
 
     private async findAllFiles(): Promise<vscode.Uri[]> {
-        const rootPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-        if (!rootPath) {
-            return [];
-        }
-
         const sharedConfig = vscode.workspace.getConfiguration('shared');
         const includeFiles = sharedConfig.get<string>('includeFiles', '');
-        // Default is now handled by package.json settings
         const excludeFiles = sharedConfig.get<string>('excludeFiles', '');
 
-        return new Promise((resolve, reject) => {
-            // Use rg --files to list all files respecting .gitignore
-            const args = [
-                '--files'
-            ];
-
-            // Add user defined include/exclude patterns
-            if (includeFiles) {
-                const patterns = includeFiles.split(',').map(p => p.trim()).filter(p => p.length > 0);
-                patterns.forEach(p => args.push('--glob', p));
+        // Use vscode.workspace.findFiles which is faster and handles .gitignore automatically
+        // It also works on remote workspaces (SSH, WSL, etc.)
+        
+        let include: vscode.GlobPattern | undefined = undefined;
+        if (includeFiles) {
+            const patterns = includeFiles.split(',').map(p => p.trim()).filter(p => p.length > 0);
+            if (patterns.length > 1) {
+                include = `{${patterns.join(',')}}`;
+            } else if (patterns.length === 1) {
+                include = patterns[0];
             }
+        }
 
-            if (excludeFiles) {
-                const patterns = excludeFiles.split(',').map(p => p.trim()).filter(p => p.length > 0);
-                patterns.forEach(p => args.push('--glob', `!${p}`));
+        let exclude: vscode.GlobPattern | undefined = undefined;
+        if (excludeFiles) {
+            const patterns = excludeFiles.split(',').map(p => p.trim()).filter(p => p.length > 0);
+            if (patterns.length > 1) {
+                exclude = `{${patterns.join(',')}}`;
+            } else if (patterns.length === 1) {
+                exclude = patterns[0];
             }
+        }
 
-            const child = cp.spawn(rgPath, args, {
-                cwd: rootPath
-            });
-
-            let output = '';
-            child.stdout.on('data', (data) => {
-                output += data.toString();
-            });
-
-            child.on('close', (code) => {
-                if (code === 0) {
-                    const lines = output.split('\n').filter(line => line.trim().length > 0);
-                    const uris = lines.map(line => {
-                        // Normalize path: rg returns relative paths or absolute depending on context, 
-                        // but usually relative to cwd if '.' is not passed, or just paths.
-                        // Let's ensure we construct absolute URIs.
-                        // Actually rg --files output depends. 
-                        // If we run in cwd, it returns relative paths.
-                        const absolutePath = path.join(rootPath, line.trim());
-                        return vscode.Uri.file(absolutePath);
-                    });
-                    resolve(uris);
-                } else {
-                    console.error(`[Source Window] rg --files failed with code ${code}`);
-                    resolve([]); // Fallback to empty or maybe throw?
-                }
-            });
-
-            child.on('error', (err) => {
-                console.error('[Source Window] Failed to spawn rg:', err);
-                resolve([]);
-            });
-        });
+        return await vscode.workspace.findFiles(include || '**/*', exclude);
     }
+
+
 
     public addToQueue(uri: vscode.Uri) {
         // Avoid duplicates
@@ -531,9 +500,9 @@ export class SymbolIndexer {
                 const child = cp.spawn('git', args, { cwd: rootPath });
                 
                 let output = '';
-                child.stdout.on('data', d => output += d.toString());
+                child.stdout.on('data', (d: any) => output += d.toString());
                 
-                child.on('close', (code) => {
+                child.on('close', (code: number) => {
                     // If code is 0, some files were ignored.
                     // If code is 1, none were ignored.
                     // Output contains the list of ignored files (one per line).

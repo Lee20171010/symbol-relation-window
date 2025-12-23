@@ -11,11 +11,32 @@ import { LspClient } from './shared/services/LspClient';
 import { DatabaseManager } from './shared/services/DatabaseManager';
 import { DisabledWebviewProvider } from './features/placeholder/DisabledWebviewProvider';
 import { GlobalStatusBar } from './shared/ui/GlobalStatusBar';
+import * as fs from 'fs';
+import { rgPath } from '@vscode/ripgrep';
 
 let globalDbManager: DatabaseManager | undefined;
 
+function ensureRipgrepPermissions() {
+    if (process.platform !== 'win32') {
+        try {
+            // Check if file exists first
+            if (fs.existsSync(rgPath)) {
+                fs.chmodSync(rgPath, 0o755);
+                console.log(`[Source Window] Fixed permissions for: ${rgPath}`);
+            } else {
+                console.warn(`[Source Window] Ripgrep binary not found at: ${rgPath}`);
+            }
+        } catch (error) {
+            console.error(`[Source Window] Failed to set permissions for ripgrep: ${error}`);
+        }
+    }
+}
+
 export function activate(context: vscode.ExtensionContext) {
 	console.log('[Source Window] Symbol & Relation Window is active!');
+
+    // Ensure ripgrep has executable permissions on Linux/macOS
+    ensureRipgrepPermissions();
 
     const lspClient = new LspClient();
     let dbManager: DatabaseManager | undefined;

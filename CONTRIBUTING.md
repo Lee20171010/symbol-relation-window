@@ -60,8 +60,9 @@ src/
     └── vscode-api.ts                  // API Wrapper: Typed wrapper for VS Code Webview API.
 ```
 
-## Building
+## Build & Packaging
 
+### Compilation
 To compile the project manually:
 
 ```bash
@@ -72,6 +73,40 @@ To watch for changes:
 
 ```bash
 npm run watch
+```
+
+### Cross-Platform Packaging
+This extension uses a custom build script to handle cross-platform packaging of `ripgrep` binaries.
+
+**Standard Development:**
+For local development, simply run:
+```bash
+npm install
+```
+This will automatically download the `ripgrep` binary for your current platform via the standard `@vscode/ripgrep` post-install script.
+
+**Packaging for Release:**
+To package the extension for a specific platform (or all platforms), use the provided script. This script dynamically downloads the correct `ripgrep` binary from GitHub Releases and bundles it into the VSIX, allowing you to build for Linux/macOS even from a Windows machine.
+
+```bash
+# Package for current platform
+npm run package:target
+
+# Package for a specific target
+node scripts/platform-publish.js package linux-x64
+node scripts/platform-publish.js package darwin-arm64
+```
+
+### Publishing
+To publish the extension to the VS Code Marketplace, you can use the same script with the `publish` action. This will package the extension for the specified target and immediately publish it.
+
+```bash
+# Publish for current platform
+npm run publish:target -- -p <YOUR_TOKEN>
+
+# Publish for a specific target
+node scripts/platform-publish.js publish linux-x64 -p <YOUR_TOKEN>
+node scripts/platform-publish.js publish darwin-arm64 -p <YOUR_TOKEN>
 ```
 
 ## Testing

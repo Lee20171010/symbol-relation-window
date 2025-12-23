@@ -250,6 +250,13 @@ This extension is built on top of VS Code's native APIs (Symbol, Call Hierarchy,
 -   **History Navigation**: Restore Back/Forward buttons in the Relation Window to navigate through exploration history.
 -   **Lock View**: Add a "Lock" button to temporarily freeze the Relation Window on a specific symbol.
 
+## Future Work
+
+- **Native Search API Integration**: Currently, this extension bundles `ripgrep` binaries for different platforms to support Deep Search features. This requires platform-specific builds. In the future, once VS Code's native `findTextInFiles` API stabilizes (moves out of proposal stage), we plan to:
+    - Remove the bundled `ripgrep` binaries and dependencies.
+    - Remove platform-specific build scripts.
+    - Fully migrate to `vscode.workspace.findTextInFiles` for a lighter, more robust cross-platform experience.
+
 ## Documentation
 
 For a detailed technical specification of the extension's architecture, UI design, and internal logic, please refer to [SPEC.md](Spec.md).

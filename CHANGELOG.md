@@ -4,6 +4,15 @@ All notable changes to the "symbol-relation-window" extension will be documented
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [Unreleased]
+
+### Added
+- **Cross-Platform Build**: Added build scripts to automatically download and bundle the correct `ripgrep` binary for the target platform (Windows, macOS, Linux) during packaging.
+
+### Fixed
+- **Permissions**: Fixed `ripgrep` permission issues on macOS/Linux by adding a runtime check to ensure the binary is executable (`chmod 755`).
+- **Indexing**: Improved file discovery for the Symbol Database. Switched from spawning `ripgrep --files` to using the native `vscode.workspace.findFiles` API. This fixes issues with path resolution in WSL/Remote environments and ensures `.gitignore` is respected consistently.
+
 ## [1.0.0] - 2025-12-21
 
 ### Added

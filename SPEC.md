@@ -142,10 +142,10 @@ Since the Database is a shared resource, its status and controls are hosted in t
     -   **LSP Dependency:** The indexer **MUST** wait for the `SymbolController` to report `ready` state before processing the queue. If the LSP becomes unavailable, indexing pauses.
     -   **Initial Scan (Cold Start):**
         -   Iterate over all workspace folders (`vscode.workspace.workspaceFolders`).
-        -   Run `rg --files` for each folder to build the initial file list.
+        -   Run `vscode.workspace.findFiles` for each folder to build the initial file list.
     -   **Startup Sync (Warm Start):**
         -   Load the list of indexed files from SQLite.
-        -   Compare with the current workspace state (using `rg --files` per folder).
+        -   Compare with the current workspace state (using `vscode.workspace.findFiles` per folder).
         -   **Deleted Files:** Remove from DB.
         -   **New Files:** Add to the indexing queue.
         -   **Modified Files:** Check `mtime` (modification time). If changed, add to the indexing queue.
@@ -764,6 +764,10 @@ The strategy depends on how the search is triggered, but **both** methods respec
 -   **Relation Window Lock:** The `isLocked` state variable remains in `RelationController.ts` but is no longer toggled via UI (replaced by `autoSearch` setting).
 
 ### 11.2 Planned Features
+-   **Native Search API Integration:** Currently, this extension bundles `ripgrep` binaries for different platforms to support Deep Search features. This requires platform-specific builds. In the future, once VS Code's native `findTextInFiles` API stabilizes (moves out of proposal stage), we plan to:
+    - Remove the bundled `ripgrep` binaries and dependencies.
+    - Remove platform-specific build scripts.
+    - Fully migrate to `vscode.workspace.findTextInFiles` for a lighter, more robust cross-platform experience.
 -   **Deep Search Timeout:** Consider adding a timeout (e.g., 5s) for Deep Search tasks. Currently not implemented as it seems unnecessary (users prefer complete results).
 -   **History Navigation UI:** Restore the Back/Forward buttons in the Relation Window toolbar to allow users to navigate through their browsing history (logic already exists in backend).
 -   **Lock View UI:** Restore the "Lock" button to allow users to temporarily freeze the Relation Window on a specific symbol without disabling Auto-Sync globally.
