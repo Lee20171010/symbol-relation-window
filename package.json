@@ -2,7 +2,7 @@
   "name": "symbol-relation-window",
   "displayName": "Symbol & Relation Window",
   "description": "Source Insight-like symbol navigation, call hierarchy, and reference lookup.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "ytlee",
   "license": "MIT",
   "author": {

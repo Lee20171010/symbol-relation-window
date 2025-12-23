@@ -6,6 +6,8 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+## [1.0.1] - 2025-12-24
+
 ### Added
 - **Cross-Platform Build**: Added build scripts to automatically download and bundle the correct `ripgrep` binary for the target platform (Windows, macOS, Linux) during packaging.
 
