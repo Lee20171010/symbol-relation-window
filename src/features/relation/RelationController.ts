@@ -484,7 +484,7 @@ export class RelationController {
     }
 
     public async refresh() {
-        this.webviewProvider.show();
+        await vscode.commands.executeCommand('relation-window-view.focus');
         const editor = vscode.window.activeTextEditor;
         if (editor) {
             await this.sync(editor.document.uri, editor.selection.active, true);

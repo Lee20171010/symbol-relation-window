@@ -173,6 +173,10 @@
         - Open a file in a large project (where LSP takes time).
         - Verify the "Waiting for symbol provider..." loading state appears immediately.
         - Verify symbols load once the LSP is ready.
+    - **Cold Start Focus (Shortcuts)**:
+        - Ensure all Webview panels are closed or uninitialized.
+        - Press `Ctrl+T` (Project Search) or `Ctrl+Shift+O` (Current Search).
+        - Verify the panel opens successfully and the cursor is immediately focused inside the search input box without any manual clicks.
     - **Active to Active**:
         - Open File A. Verify status transitions to Ready and symbols load.
         - Open File B. Verify status remains Ready (no "Loading" flash) and symbols update.
@@ -264,6 +268,11 @@
     - Enable `relationWindow.enable`.
     - Verify "Relation Window" appears in the Side Bar below Symbol Window.
     - Verify it can be resized.
+- [ ] **Cold Start Focus (Manual Search)**
+    - Ensure the Relation Window panel is closed or uninitialized.
+    - Place the cursor on a valid symbol in an opened file.
+    - Press `Shift+Alt+H` (Manual Search).
+    - Verify the Relation Window opens successfully, automatically executes the search, and the UI correctly focuses/responds without any lost commands.
 - [ ] **Auto-Sync**
     - Open a file with known functions (e.g., `function A() calls B()`).
     - Place cursor on `B`.

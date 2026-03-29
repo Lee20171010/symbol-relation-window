@@ -376,7 +376,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('symbol-window.focusProjectSearch', () => {
+        vscode.commands.registerCommand('symbol-window.focusProjectSearch', async () => {
             const config = vscode.workspace.getConfiguration('symbolWindow');
             const enabled = config.get<boolean>('enable', true);
             if (!enabled) { return; }
@@ -385,18 +385,18 @@ export function activate(context: vscode.ExtensionContext) {
             
             if (splitView) {
                 // Split View: Focus Project Window
+                await vscode.commands.executeCommand('symbol-window-project-view.focus');
                 if (projectProvider) {
-                    projectProvider.show();
                     projectProvider.postMessage({ command: 'focusInput' });
                 }
             } else {
                 // Single View: Switch to Project Mode and Focus
+                await vscode.commands.executeCommand('symbol-window-view.focus');
                 if (controller) {
                     if (controller.currentMode !== 'project') {
                         controller.setMode('project');
                     }
                     if (provider) {
-                        provider.show();
                         provider.postMessage({ command: 'focusInput' });
                     }
                 }
@@ -405,7 +405,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('symbol-window.focusCurrentSearch', () => {
+        vscode.commands.registerCommand('symbol-window.focusCurrentSearch', async () => {
             const config = vscode.workspace.getConfiguration('symbolWindow');
             const enabled = config.get<boolean>('enable', true);
             if (!enabled) { return; }
@@ -414,18 +414,18 @@ export function activate(context: vscode.ExtensionContext) {
             
             if (splitView) {
                 // Split View: Focus Current Window
+                await vscode.commands.executeCommand('symbol-window-view.focus');
                 if (provider) {
-                    provider.show();
                     provider.postMessage({ command: 'focusInput' });
                 }
             } else {
                 // Single View: Switch to Current Mode and Focus
+                await vscode.commands.executeCommand('symbol-window-view.focus');
                 if (controller) {
                     if (controller.currentMode !== 'current') {
                         controller.setMode('current');
                     }
                     if (provider) {
-                        provider.show();
                         provider.postMessage({ command: 'focusInput' });
                     }
                 }

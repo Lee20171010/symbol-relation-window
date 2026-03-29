@@ -7,6 +7,8 @@ export class RelationWebviewProvider implements vscode.WebviewViewProvider {
     private _view?: vscode.WebviewView;
     private _onMessage = new vscode.EventEmitter<any>();
     public readonly onMessage = this._onMessage.event;
+    private _isReady: boolean = false;
+    private _messagesQueue: any[] = [];
 
     constructor(
         private readonly _extensionUri: vscode.Uri
@@ -18,6 +20,8 @@ export class RelationWebviewProvider implements vscode.WebviewViewProvider {
         _token: vscode.CancellationToken,
     ) {
         this._view = webviewView;
+        this._isReady = false;
+        this._messagesQueue = [];
 
         webviewView.webview.options = {
             enableScripts: true,
@@ -29,11 +33,22 @@ export class RelationWebviewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
         webviewView.webview.onDidReceiveMessage(data => {
+            if (data.command === 'ready') {
+                this._isReady = true;
+                while (this._messagesQueue.length > 0) {
+                    const msg = this._messagesQueue.shift();
+                    this.postMessage(msg);
+                }
+            }
             this._onMessage.fire(data);
         });
     }
 
     public postMessage(message: any) {
+        if (!this._isReady) {
+            this._messagesQueue.push(message);
+            return;
+        }
         if (this._view) {
             this._view.webview.postMessage(message);
         }
@@ -41,14 +56,6 @@ export class RelationWebviewProvider implements vscode.WebviewViewProvider {
 
     public isVisible(): boolean {
         return this._view ? this._view.visible : false;
-    }
-
-    public show(preserveFocus?: boolean) {
-        if (this._view) {
-            this._view.show(preserveFocus);
-        } else {
-            vscode.commands.executeCommand('relation-window-view.focus');
-        }
     }
 
     private _getHtmlForWebview(webview: vscode.Webview) {

@@ -413,6 +413,10 @@ The `LspClient` (shared service) maintains a state machine to handle the availab
     - **Project Mode:** Strictly respects the state. If `timeout`, it shows an error. If `loading`, it shows a spinner.
     - **Current Mode:** Also respects the global readiness state. It will fetch and display symbols if available, but the UI will remain in a "Loading" state until the global polling confirms the LSP is fully ready.
         - **Exception:** If no editor is active, the state automatically transitions to `ready` to avoid a perpetual spinner.
+  - **Webview Initialization (Cold Start):**
+      - Because the React frontend (`WebView`) loads asynchronously relative to the VS Code Extension Host, a **Message Queue** mechanism (`_messagesQueue`) is implemented in the `SymbolWebviewProvider`.
+      - The Provider intercepts and queues all outgoing `postMessage` entries (e.g., `focusInput`, `setQuery`) until it receives a `{ command: 'ready' }` signal from the React app.
+      - To guarantee safe rendering order and avoid Race Conditions, programmatic UI manifestations must use `await vscode.commands.executeCommand('*.focus')` before interacting with the provider.
 
 ### 5.4 Database Mode Integration
 
@@ -630,6 +634,10 @@ The Relation Window employs a **Parallel Execution Strategy** to combine the pre
         3.  The frontend stops the loading spinner but displays no new children.
 
 #### 6.2.5 Concurrency & Lifecycle
+-   **Webview Initialization & Message Queuing:**
+    -   Because the React frontend (`WebView`) loads asynchronously relative to the VS Code Extension Host, a **Message Queue** mechanism is implemented.
+    -   The Backend (Provider) intercepts and queues all `postMessage` commands (e.g., `focusInput`, `setQuery`) until it receives a `{ command: 'ready' }` signal from the frontend.
+    -   This guarantees that commands sent during a "cold start" (e.g., triggering a shortcut immediately after opening the editor) aren't dropped due to the UI not being fully mounted.
 -   **Race Condition Handling:**
     -   Assign a unique `requestId` (incrementing integer) to each hierarchy fetch request.
     -   The Frontend stores the `lastRequestId` of the most recently processed update.

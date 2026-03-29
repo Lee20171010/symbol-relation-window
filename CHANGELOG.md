@@ -6,6 +6,11 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+### Fixed
+- **Webview Synchronization**: Resolved cold-start bug preventing search inputs from focusing or receiving queries upon initial extension load.
+  - Implemented a `_messagesQueue` mechanism in `SymbolWebviewProvider` and `RelationWebviewProvider` to buffer incoming messages until the React frontend explicitly signals it is `ready`.
+  - Enforced strict execution order by replacing asynchronous `.show()` API calls with standard VS Code `vscode.commands.executeCommand('*.focus')` and explicitly `await`ing their resolution.
+
 ## [1.0.1] - 2025-12-24
 
 ### Added

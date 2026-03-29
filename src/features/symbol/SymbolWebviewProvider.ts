@@ -8,6 +8,8 @@ export class SymbolWebviewProvider implements vscode.WebviewViewProvider {
 
     private _view?: vscode.WebviewView;
     private controller: SymbolController;
+    private _isReady: boolean = false;
+    private _messagesQueue: any[] = [];
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
@@ -26,21 +28,13 @@ export class SymbolWebviewProvider implements vscode.WebviewViewProvider {
         return this._view ? this._view.visible : false;
     }
 
-    public show() {
-        if (this._view) {
-            this._view.show(true); // true to preserve focus? No, we want to focus it.
-            // Actually, show(true) preserves focus on the *editor*. show(false) or show() focuses the view.
-            // We want to focus the view so we can focus the input.
-            this._view.show();
-        }
-    }
-
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
         context: vscode.WebviewViewResolveContext,
         _token: vscode.CancellationToken,
     ) {
         this._view = webviewView;
+        this._isReady = false; // Reset ready state when view is resolved
 
         webviewView.webview.options = {
             enableScripts: true,
@@ -54,6 +48,12 @@ export class SymbolWebviewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.onDidReceiveMessage(async (data: WebviewMessage) => {
             switch (data.command) {
                 case 'ready':
+                    this._isReady = true;
+                    // Flush pending messages
+                    while (this._messagesQueue.length > 0) {
+                        const msg = this._messagesQueue.shift();
+                        this.postMessage(msg);
+                    }
                     this.controller.refresh();
                     break;
                 case 'search':
@@ -91,6 +91,10 @@ export class SymbolWebviewProvider implements vscode.WebviewViewProvider {
     }
 
     public postMessage(message: any) {
+        if (!this._isReady) {
+            this._messagesQueue.push(message);
+            return;
+        }
         if (this._view) {
             this._view.webview.postMessage(message);
         }
