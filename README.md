@@ -60,7 +60,7 @@ You may see a **Zap icon** next to some results.
 ![Activity Bar](media/Common/Activitybar.png)
 2.  **Search**:
     -   `Ctrl+Shift+O`: Focus **Current Document** search.
-    -   `Ctrl+T`: Focus **Project Workspace** search.
+    -   `Ctrl+T`: Focus **Project Workspace** search and auto-fill with the symbol under cursor.
 3.  **Switch Modes**: Click the "Toggle Mode" icon to switch between "Current Document" and "Project Workspace".<br>
 ![Toggle Mode](media/Common/Toggle.png)
 4.  **Refresh**: Click "Refresh" to reload symbols.<br>

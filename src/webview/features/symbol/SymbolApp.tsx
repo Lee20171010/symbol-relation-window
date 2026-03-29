@@ -135,7 +135,8 @@ const App: React.FC = () => {
                             command: 'search', 
                             query: queryRef.current, 
                             includePattern: includePatternRef.current,
-                            excludePattern: excludePatternRef.current
+                            excludePattern: excludePatternRef.current,
+                            kinds: projectFilterRef.current
                         });
                     }
                     break;
@@ -181,6 +182,19 @@ const App: React.FC = () => {
                 case 'focusInput':
                     // Use setTimeout to ensure the DOM is ready or to break the call stack
                     setTimeout(() => {
+                        if (message.query) {
+                            setQuery(message.query);
+                            
+                            // Emit search immediately
+                            vscode.postMessage({ 
+                                command: 'search', 
+                                query: message.query, 
+                                includePattern: includePatternRef.current,
+                                excludePattern: excludePatternRef.current,
+                                kinds: modeRef.current === 'project' ? projectFilterRef.current : undefined
+                            });
+                        }
+                        
                         if (searchInputRef.current) {
                             // VSCodeTextField exposes the underlying input via shadowRoot or similar, 
                             // but usually focusing the component itself works if it delegates focus.

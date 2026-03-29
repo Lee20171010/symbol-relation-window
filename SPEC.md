@@ -748,7 +748,7 @@ The strategy depends on how the search is triggered, but **both** methods respec
 ### 9.1 Symbol Window
 - `symbol-window.refresh`: Refresh the current view.
 - `symbol-window.toggleMode`: Toggle between Current and Project modes.
-- `symbol-window.focusProjectSearch`: Focus the Project search bar.
+- `symbol-window.focusProjectSearch`: Focus the Project search bar and auto-fill with the currently selected text or the word under the cursor.
 - `symbol-window.focusCurrentSearch`: Focus the Current Document search bar.
 - `symbol-window.deepSearch`: Trigger Deep Search.
 - `symbol-window.rebuildIndex`: Incremental index rebuild.

@@ -57,6 +57,10 @@
 - [ ] **Default State**
     - Switch to Project Mode.
     - Verify the list is initially empty (or shows a prompt to search).
+- [ ] **Smart Search Auto-fill**
+    - Place the cursor on a specific word in an active editor.
+    - Press `Ctrl+T`.
+    - Verify the Symbol Window switches to Project Mode, the search bar is focused, populated with the word under the cursor, and a search is immediately triggered.
 - [ ] **Search Functionality**
     - Type a query (e.g., `main`, `Symbol`).
     - Verify results are fetched from the workspace.

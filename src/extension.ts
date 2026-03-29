@@ -381,13 +381,28 @@ export function activate(context: vscode.ExtensionContext) {
             const enabled = config.get<boolean>('enable', true);
             if (!enabled) { return; }
 
+            // Extract the symbol/word currently under the cursor
+            let queryText = '';
+            const editor = vscode.window.activeTextEditor;
+            if (editor) {
+                const selection = editor.selection;
+                if (!selection.isEmpty) {
+                    queryText = editor.document.getText(selection).trim();
+                } else {
+                    const wordRange = editor.document.getWordRangeAtPosition(selection.active);
+                    if (wordRange) {
+                        queryText = editor.document.getText(wordRange).trim();
+                    }
+                }
+            }
+
             const splitView = config.get<boolean>('splitView', true);
             
             if (splitView) {
                 // Split View: Focus Project Window
                 await vscode.commands.executeCommand('symbol-window-project-view.focus');
                 if (projectProvider) {
-                    projectProvider.postMessage({ command: 'focusInput' });
+                    projectProvider.postMessage({ command: 'focusInput', query: queryText });
                 }
             } else {
                 // Single View: Switch to Project Mode and Focus
@@ -397,7 +412,7 @@ export function activate(context: vscode.ExtensionContext) {
                         controller.setMode('project');
                     }
                     if (provider) {
-                        provider.postMessage({ command: 'focusInput' });
+                        provider.postMessage({ command: 'focusInput', query: queryText });
                     }
                 }
             }

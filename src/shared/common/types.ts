@@ -40,7 +40,7 @@ export type Message =
     | { command: 'setDatabaseMode'; enabled: boolean }
     | { command: 'appendSymbols'; symbols: SymbolItem[]; totalCount?: number }
     | { command: 'selectSymbol'; range: any }
-    | { command: 'focusInput' };
+    | { command: 'focusInput'; query?: string };
 
 export type WebviewMessage =
     | { command: 'search'; query: string; includePattern?: string; excludePattern?: string; kinds?: number[] }
