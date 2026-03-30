@@ -6,6 +6,9 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+
+## [1.0.2] - 2026-03-31
+
 ### Added
 - **Smart Search Focus & Auto-Select**: In Project Mode, using the `Focus Project Search` shortcut (`Ctrl+T`) automatically extracts the word or selection under the cursor and executes an immediate search.
 
