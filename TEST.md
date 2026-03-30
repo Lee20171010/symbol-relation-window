@@ -60,7 +60,7 @@
 - [ ] **Smart Search Auto-fill**
     - Place the cursor on a specific word in an active editor.
     - Press `Ctrl+T`.
-    - Verify the Symbol Window switches to Project Mode, the search bar is focused, populated with the word under the cursor, and a search is immediately triggered.
+    - Verify the Symbol Window switches to Project Mode, the search bar is focused, the text is selected (highlighted), populated with the word under the cursor, and a search is immediately triggered.
 - [ ] **Search Functionality**
     - Type a query (e.g., `main`, `Symbol`).
     - Verify results are fetched from the workspace.
@@ -136,14 +136,14 @@
     - Search for `TestUniqueSymbol`.
     - Verify the symbol is removed from the results.
 - [ ] **Exclude Files**
-    - Add `**/*.ts` to `symbolWindow.excludeFiles`.
-    - Rebuild Index.
-    - Verify no `.ts` symbols appear in search.
+    - Add `**/*.ts` to `shared.excludeFiles`.
+    - Rebuild Index
+    - Verify the Extension automatically reloads configuration and no `.ts` symbols appear in search.
     - Remove the exclusion.
 - [ ] **Include Files**
-    - Set `symbolWindow.includeFiles` to `**/*.md`.
-    - Rebuild Index.
-    - Verify ONLY `.md` files are indexed (if they have symbols).
+    - Set `shared.includeFiles` to `**/*.md`.
+    - Rebuild Index
+    - Verify the Extension automatically retranslates the watcher and ONLY `.md` files are indexed (if they have symbols).
 - [ ] **Persistence**
     - Index the workspace.
     - Reload the window (`Developer: Reload Window`).

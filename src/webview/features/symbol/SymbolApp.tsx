@@ -195,13 +195,18 @@ const App: React.FC = () => {
                             });
                         }
                         
-                        if (searchInputRef.current) {
-                            // VSCodeTextField exposes the underlying input via shadowRoot or similar, 
-                            // but usually focusing the component itself works if it delegates focus.
-                            // However, web components can be tricky.
-                            // Let's try calling focus() on the ref.
-                            searchInputRef.current.focus();
-                        }
+                        // Wait slightly for React to render the new value if any, then focus to select
+                        setTimeout(() => {
+                            if (searchInputRef.current) {
+                                searchInputRef.current.focus();
+                                
+                                // To easily allow users to replace the query, we should select all of the text
+                                const inputEl = searchInputRef.current.shadowRoot?.querySelector('input');
+                                if (inputEl) {
+                                    inputEl.select();
+                                }
+                            }
+                        }, 50);
                     }, 0);
                     break;
             }

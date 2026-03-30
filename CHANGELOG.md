@@ -7,9 +7,13 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [Unreleased]
 
 ### Added
-- **Smart Search Focus**: In Project Mode, using the `Focus Project Search` shortcut (`Ctrl+T`) now automatically extracts the word or selection under the cursor and executes an immediate search.
+- **Smart Search Focus & Auto-Select**: In Project Mode, using the `Focus Project Search` shortcut (`Ctrl+T`) automatically extracts the word or selection under the cursor and executes an immediate search.
+
+### Changed
+- **Optimized File System Watcher**: The background file watcher now rigorously restricts its glob scoping to `shared.includeFiles` and actively skips files caught by `shared.excludeFiles`, reducing unnecessary monitoring overhead.
 
 ### Fixed
+- **Dynamic Configuration Updates**: The Background Indexer now dynamically recreates file system watchers and reloads cache mapping when `shared.includeFiles` or `shared.excludeFiles` are modified.
 - **Filter State on Refresh**: Fixed a bug where refreshing the Symbol Window in Project Mode would drop the user's active symbol kind filters and query all types instead.
 - **Webview Synchronization**: Resolved cold-start bug preventing search inputs from focusing or receiving queries upon initial extension load.
   - Implemented a `_messagesQueue` mechanism in `SymbolWebviewProvider` and `RelationWebviewProvider` to buffer incoming messages until the React frontend explicitly signals it is `ready`.

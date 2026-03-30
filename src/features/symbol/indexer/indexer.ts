@@ -15,6 +15,10 @@ export class SymbolIndexer {
     private rootIgnored = new Set<string>(['.git', '.DS_Store', '.vscode']);
     private anywhereIgnored = new Set<string>([]);
 
+    private excludeIgnored = new Set<string>();
+    private excludeRegexes: RegExp[] = [];
+    private fileWatcher: vscode.FileSystemWatcher | undefined;
+
     private debounceTimer: NodeJS.Timeout | undefined;
     private readonly DEBOUNCE_DELAY = 2000; // 2 seconds
 
@@ -112,6 +116,7 @@ export class SymbolIndexer {
 
     public startWatching() {
         this.loadGitignore();
+        this.loadExclude();
 
         // Watch .gitignore changes to update fast path filters
         const gitignoreWatcher = vscode.workspace.createFileSystemWatcher('**/.gitignore');
@@ -120,9 +125,44 @@ export class SymbolIndexer {
         gitignoreWatcher.onDidDelete(() => this.loadGitignore());
         this.context.subscriptions.push(gitignoreWatcher);
 
+        this.setupFileWatcher();
+
+        // Watch for configuration changes to update the watcher & exclude caches organically
+        const configWatcher = vscode.workspace.onDidChangeConfiguration(e => {
+            if (e.affectsConfiguration('shared.excludeFiles')) {
+                // console.log('[Source Window] Configuration shared.excludeFiles changed, reloading caches.');
+                this.loadExclude();
+            }
+            if (e.affectsConfiguration('shared.includeFiles')) {
+                // console.log('[Source Window] Configuration shared.includeFiles changed, recreating OS watcher.');
+                this.setupFileWatcher();
+            }
+        });
+        this.context.subscriptions.push(configWatcher);
+    }
+
+    private setupFileWatcher() {
+        // Dispose of the previous watcher to prevent memory leaks / duplicate events
+        if (this.fileWatcher) {
+            this.fileWatcher.dispose();
+        }
+
+        const sharedConfig = vscode.workspace.getConfiguration('shared');
+        const includeFiles = sharedConfig.get<string>('includeFiles', '');
+        
+        let watcherGlob = '**/*';
+        if (includeFiles) {
+            const patterns = includeFiles.split(',').map(p => p.trim()).filter(p => p.length > 0);
+            if (patterns.length > 1) {
+                watcherGlob = `{${patterns.join(',')}}`;
+            } else if (patterns.length === 1) {
+                watcherGlob = patterns[0];
+            }
+        }
+
         // 1. Handle File Creation, Deletion, and Changes
-        const watcher = vscode.workspace.createFileSystemWatcher('**/*');
-        this.context.subscriptions.push(watcher);
+        this.fileWatcher = vscode.workspace.createFileSystemWatcher(watcherGlob);
+        this.context.subscriptions.push(this.fileWatcher);
         
         const handleFileChange = (uri: vscode.Uri) => {
             if (this.shouldIgnore(uri)) { return; }
@@ -130,9 +170,9 @@ export class SymbolIndexer {
             this.addToQueue(uri);
         };
 
-        watcher.onDidCreate(handleFileChange);
-        watcher.onDidChange(handleFileChange);
-        watcher.onDidDelete(uri => {
+        this.fileWatcher.onDidCreate(handleFileChange);
+        this.fileWatcher.onDidChange(handleFileChange);
+        this.fileWatcher.onDidDelete(uri => {
             if (this.shouldIgnore(uri)) { return; }
             this.db.deleteFile(uri.fsPath);
         });
@@ -452,7 +492,25 @@ export class SymbolIndexer {
         }
 
         // Check anywhere ignored (e.g. node_modules)
-        return segments.some(s => this.anywhereIgnored.has(s));
+        if (segments.some(s => this.anywhereIgnored.has(s))) {
+            return true;
+        }
+
+        // Check user configured plain text excludes (extremely fast O(1) Set lookup)
+        if (segments.some(s => this.excludeIgnored.has(s))) {
+            return true;
+        }
+
+        const normalizedPath = relativePath.replace(/\\/g, '/');
+
+        // Check user configured excludeFiles using pre-compiled regex for globs
+        if (this.excludeRegexes.length > 0) {
+            if (this.excludeRegexes.some(r => r.test(normalizedPath))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private async filterExcludedFiles(uris: vscode.Uri[]): Promise<vscode.Uri[]> {
@@ -527,6 +585,36 @@ export class SymbolIndexer {
             });
         } catch (e) {
             return uris;
+        }
+    }
+
+    private loadExclude() {
+        const sharedConfig = vscode.workspace.getConfiguration('shared');
+        const excludeFiles = sharedConfig.get<string>('excludeFiles', '');
+        
+        this.excludeIgnored.clear();
+        this.excludeRegexes = [];
+
+        if (!excludeFiles) { return; }
+
+        const patterns = excludeFiles.split(',').map(p => p.trim()).filter(p => p.length > 0);
+        for (let p of patterns) {
+            // If the pattern contains wildcards (*, ?, []), convert it to a regular expression
+            if (/[*?\[\]]/.test(p)) {
+                try {
+                    // We must escape *, ? as well before replacing them, otherwise they break the RegExp
+                    const escaped = p.replace(/[.+^${}()|[\]\\*?]/g, '\\$&');
+                    const regexStr = escaped.replace(/\\\*\\\*/g, '.*').replace(/\\\*/g, '[^/]*').replace(/\\\?/g, '.');
+                    this.excludeRegexes.push(new RegExp(`(^|/)${regexStr}(/|$)`, 'i'));
+                } catch (e) {
+                    console.warn(`[Source Window] Ignored invalid exclude configuration pattern: "${p}"`, e);
+                }
+            } else {
+                // If it is a simple folder or file name (e.g., node_modules, dist), store it in the Set directly
+                if (p.startsWith('/')) { p = p.substring(1); }
+                if (p.endsWith('/')) { p = p.substring(0, p.length - 1); }
+                this.excludeIgnored.add(p);
+            }
         }
     }
 

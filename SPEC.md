@@ -240,8 +240,8 @@ The database schema is normalized to reduce storage size and improve query perfo
 3.  **File Filtering:**
     -   *Challenge:* Indexing irrelevant files (minified JS, logs, node_modules) wastes resources.
     -   *Solution:* **Leverage Ripgrep & Configuration**.
-        -   Use `rg --files` to discover files for indexing. This automatically respects `.gitignore` and handles binary/large file exclusion.
-        -   **Configuration:**
+        -   Use `vscode.workspace.findFiles` to discover files for indexing. This automatically respects `.gitignore` and handles binary/large file exclusion.
+        -   **Configuration:** (These settings are dynamically watched. Any changes reload the native file watchers instantly)
             -   `shared.includeFiles`: Whitelist specific patterns (e.g., `**/*.c, **/*.h`). If set, only matching files are indexed.
             -   `shared.excludeFiles`: Blacklist specific patterns (e.g., `**/*.md, **/*.txt`). These are excluded even if they pass `.gitignore`.
         -   Explicitly exclude `node_modules` unless configured otherwise.
