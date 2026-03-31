@@ -6,9 +6,11 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+
+## [1.0.3] - 2026-03-31
+
 ### Changed
 - **Indexing Throughput**: Reduced warm-start sync and full rebuild overhead by tagging queued files with their indexing source and carrying known modification times, which avoids redundant exclusion checks and repeated mtime validation for trusted batches while keeping watcher updates conservative.
-
 
 ## [1.0.2] - 2026-03-31
 
