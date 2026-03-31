@@ -4,8 +4,16 @@ import * as cp from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 
+type IndexReason = 'full' | 'sync' | 'watcher';
+
+interface QueueEntry {
+    uri: vscode.Uri;
+    reason: IndexReason;
+    knownMtime?: number;
+}
+
 export class SymbolIndexer {
-    private queue: vscode.Uri[] = [];
+    private queue: QueueEntry[] = [];
     private queueSet = new Set<string>();
     private isProcessing = false;
     private isPaused = true; // Default to paused (wait for LSP ready)
@@ -56,7 +64,7 @@ export class SymbolIndexer {
         // Re-scan all files
         const files = await this.findAllFiles();
         this.totalToProcess = files.length;
-        this.queue = files;
+        this.queue = files.map(uri => ({ uri, reason: 'full' }));
         this.queueSet = new Set(files.map(u => u.toString()));
         
         this.isPaused = false;
@@ -102,12 +110,12 @@ export class SymbolIndexer {
 
 
 
-    public addToQueue(uri: vscode.Uri) {
+    public addToQueue(uri: vscode.Uri, reason: IndexReason = 'watcher', knownMtime?: number) {
         // Avoid duplicates
         const key = uri.toString();
         if (!this.queueSet.has(key)) {
             this.queueSet.add(key);
-            this.queue.push(uri);
+            this.queue.push({ uri, reason, knownMtime });
             this.totalToProcess++;
             this.updateStatusBar();
             this.scheduleDebounce();
@@ -167,7 +175,7 @@ export class SymbolIndexer {
         const handleFileChange = (uri: vscode.Uri) => {
             if (this.shouldIgnore(uri)) { return; }
             // console.log(`[Source Window] File change detected:`, uri.fsPath);
-            this.addToQueue(uri);
+            this.addToQueue(uri, 'watcher');
         };
 
         this.fileWatcher.onDidCreate(handleFileChange);
@@ -210,15 +218,14 @@ export class SymbolIndexer {
 
             const batch = this.queue.splice(0, batchSize);
             // Remove from set
-            for (const u of batch) {
-                this.queueSet.delete(u.toString());
+            for (const entry of batch) {
+                this.queueSet.delete(entry.uri.toString());
             }
 
-            // Filter out files that are ignored by .gitignore (using rg)
-            const validBatch = await this.filterExcludedFiles(batch);
+            const validBatch = await this.resolveIndexableBatch(batch);
 
             if (validBatch.length > 0) {
-                await Promise.all(validBatch.map(uri => this.indexFile(uri)));
+                await Promise.all(validBatch.map(entry => this.indexFile(entry)));
                 // Note: indexFile might re-queue items on failure.
                 // We count them as processed for this batch to keep progress moving forward visually,
                 // even if they are re-added to the end of the queue.
@@ -261,27 +268,45 @@ export class SymbolIndexer {
         }
     }
 
-    private async indexFile(uri: vscode.Uri) {
-        try {
-            // 0. Check existence and get mtime first
-            // This prevents ENOENT errors if the file was deleted before we could process it
-            let stat: vscode.FileStat;
-            try {
-                stat = await vscode.workspace.fs.stat(uri);
-            } catch (error) {
-                // File likely deleted or not accessible, skip silently
-                return;
-            }
+    private async resolveIndexableBatch(batch: QueueEntry[]): Promise<QueueEntry[]> {
+        const watcherEntries = batch.filter(entry => entry.reason === 'watcher');
 
-            // Check DB mtime to avoid unnecessary LSP calls
-            const dbMtime = this.db.getFileMtime(uri.fsPath);
-            // Allow small time difference (e.g. 100ms) or exact match?
-            // Usually exact match is fine for integers.
-            // But let's be safe: if dbMtime >= stat.mtime, we skip.
-            // Note: stat.mtime is usually in milliseconds.
-            if (dbMtime !== undefined && dbMtime >= stat.mtime) {
-                // console.log(`[Source Window] Skipping ${uri.fsPath} (mtime match)`);
-                return;
+        if (watcherEntries.length === 0) {
+            return batch;
+        }
+
+        const validatedUris = await this.filterExcludedFiles(watcherEntries.map(entry => entry.uri));
+        const validatedSet = new Set(validatedUris.map(uri => uri.toString()));
+
+        return batch.filter(entry => entry.reason !== 'watcher' || validatedSet.has(entry.uri.toString()));
+    }
+
+    private async indexFile(entry: QueueEntry) {
+        const { uri, reason, knownMtime } = entry;
+
+        try {
+            let mtime = knownMtime;
+
+            if (reason !== 'sync' || mtime === undefined) {
+                // For full rebuilds and watcher events, we still need to stat the file at indexing time.
+                // Sync jobs may already carry a known mtime from warm-start diffing.
+                let stat: vscode.FileStat;
+                try {
+                    stat = await vscode.workspace.fs.stat(uri);
+                } catch (error) {
+                    // File likely deleted or not accessible, skip silently
+                    return;
+                }
+
+                mtime = stat.mtime;
+
+                // Watcher events are noisy, so keep the conservative mtime check on that path only.
+                if (reason === 'watcher') {
+                    const dbMtime = this.db.getFileMtime(uri.fsPath);
+                    if (dbMtime !== undefined && dbMtime >= mtime) {
+                        return;
+                    }
+                }
             }
 
             // 1. Get Symbols
@@ -308,7 +333,7 @@ export class SymbolIndexer {
                 if (retries < this.MAX_RETRIES) {
                     // Re-queue
                     this.retryCounts.set(key, retries + 1);
-                    this.queue.push(uri);
+                    this.queue.push({ uri, reason, knownMtime });
                     this.queueSet.add(key);
                     // Don't increment totalToProcess as it's already counted
                     // But we need to ensure processedCount isn't incremented for this failure
@@ -336,8 +361,6 @@ export class SymbolIndexer {
             const flatSymbols = (symbols && symbols.length > 0) ? this.flattenSymbols(symbols) : [];
 
             // 3. Insert into DB
-            const mtime = stat.mtime;
-
             // Use transaction for atomic update
             this.db.insertFileAndSymbols(uri.fsPath, mtime, flatSymbols);
 
@@ -393,7 +416,7 @@ export class SymbolIndexer {
         const dbFiles = this.db.getFiles();
 
         // 3. Compare
-        const toIndex: vscode.Uri[] = [];
+        const toIndex: QueueEntry[] = [];
         
         // Check for new or modified files
         const filesToCheck: { path: string, uri: vscode.Uri, dbMtime: number }[] = [];
@@ -402,7 +425,7 @@ export class SymbolIndexer {
             const dbRecord = dbFiles.get(path);
             if (!dbRecord) {
                 // New file
-                toIndex.push(uri);
+                toIndex.push({ uri, reason: 'sync' });
             } else {
                 filesToCheck.push({ path, uri, dbMtime: dbRecord.mtime });
             }
@@ -417,7 +440,7 @@ export class SymbolIndexer {
                     const stat = await vscode.workspace.fs.stat(item.uri);
                     // Allow 1s difference due to precision
                     if (stat.mtime > item.dbMtime + 1000) {
-                        toIndex.push(item.uri);
+                        toIndex.push({ uri: item.uri, reason: 'sync', knownMtime: stat.mtime });
                     }
                 } catch (e) {
                     // File might be gone or inaccessible
@@ -443,11 +466,11 @@ export class SymbolIndexer {
 
             this.totalToProcess += toIndex.length;
             
-            for (const uri of toIndex) {
-                const key = uri.toString();
+            for (const entry of toIndex) {
+                const key = entry.uri.toString();
                 if (!this.queueSet.has(key)) {
                     this.queueSet.add(key);
-                    this.queue.push(uri);
+                    this.queue.push(entry);
                 }
             }
 
